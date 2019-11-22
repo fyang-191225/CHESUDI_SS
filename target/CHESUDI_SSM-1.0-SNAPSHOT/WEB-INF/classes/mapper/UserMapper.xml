@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ams.carsys.user.dao.IUserDao">
+
+    <!--  User 实体类的映射  -->
+    <resultMap id="userMap" type="com.ams.carsys.user.service.bo.User">
+        <id property="id" column="id"></id>
+        <result property="tel" column="tel"></result>
+        <result property="password" column="password"></result>
+        <result property="email" column="email" ></result>
+        <result property="invitation" column="invitation"></result>
+    </resultMap>
+
+    <!--  Order 实体类的映射  -->
+    <resultMap id="orderMap" type="com.ams.carsys.order.service.bo.Order">
+        <id property="id" column="id"></id>
+        <result property="cid"    column="cid"></result>
+        <result property="uid"    column="uid"></result>
+        <result property="getid"  column="getid"></result>
+        <result property="backid" column="backid"></result>
+        <result property="oprice" column="oprice"></result>
+        <result property="status" column="status"></result>
+    </resultMap>
+
+    <!--  City 实体类的映射  -->
+    <resultMap id="cityMap" type="com.ams.carsys.city.service.bo.City">
+        <id property="id"   column="id"  ></id>
+        <result property="name" column="name"></result>
+        <result property="pid"  column="pid" ></result>
+    </resultMap>
+
+    <!--  Car 实体类的映射  -->
+    <resultMap id="carMap" type="com.ams.carsys.car.service.bo.Car">
+        <id property="id"   column="id"  ></id>
+        <result property="name"    column="name"   ></result>
+        <result property="type"    column="type"   ></result>
+        <result property="sitnum"  column="sitnum" ></result>
+        <result property="cid"     column="cid"    ></result>
+        <result property="price"   column="price"  ></result>
+        <result property="number"  column="number" ></result>
+        <result property="picture" column="picture"></result>
+    </resultMap>
+
+    <!--  SelectOrder 实体类的映射 ; 为了保证和前端我的订单页面的名字保持一致 -->
+    <resultMap id="selectOrder" type="com.ams.carsys.order.service.bo.SelectOrder">
+        <result column="oid"      property="oid"     ></result>
+        <result column="oprice"   property="oprice"   ></result>
+        <result column="cname"    property="cname"   ></result>
+        <result column="getcity"  property="getcity"  ></result>
+        <result column="backcity" property="backcity" ></result>
+        <result column="ostatus"  property="ostatus"   ></result>
+    </resultMap>
+
+<!--**************************************************user***********************************************************-->
+
+<!--  user 表的字节段  -->
+    <sql id="userColumns">
+        ${alias}.id, ${alias}.tel, ${alias}.password, ${alias}.email, ${alias}.invitation
+    </sql>
+
+<!--  注册新用户，即添加新用户  -->
+    <insert id="insertUser">
+        insert into sys_user(tel,password,email,invitation)VALUES (#{tel}, #{password}, #{email}, #{invitation})
+    </insert>
+
+<!--  通过tel查询user表的个人信息  -->
+    <select id="getByTel" resultMap="userMap">
+        select
+        <include refid="userColumns"><property name="alias" value="t1"/></include>
+        from sys_user t1 where t1.tel = #{tel}
+    </select>
+
+    <!--  通过id查询user表的个人信息
+        作用：
+            通过密码修改过个人信息后，通过id 获取全部信息，使修改过的信息显示出来
+     -->
+    <select id="getUserId" resultMap="userMap">
+        select
+        <include refid="userColumns"><property name="alias" value="t1"/></include>
+        from sys_user t1 where t1.id = #{id}
+    </select>
+
+    <select id="allTel" resultType="int">
+        select id from sys_user where tel = #{tel}
+    </select>
+
+<!--  通过密码修改自己的个人账户或者邮箱，即tel or email -->
+    <update id="updateUser">
+        update sys_user
+        <set>
+            <if test="tel != null">
+                tel = #{tel},
+            </if>
+            <if test="email != null">
+                email = #{email}
+            </if>
+        </set>
+        where password = #{password}
+    </update>
+
+
+
+<!--**************************************************order***********************************************************-->
+
+<!--  order 表的字节  -->
+    <sql id="orderColumnus">
+         ${alias}.id, ${alias}.cid, ${alias}.uid, ${alias}.getid, ${alias}.backid,  ${alias}.oprice, ${alias}.status
+    </sql>
+
+<!--  通过用户id 即order表中的 uid（用户id） 来查询order表的所有数据  -->
+    <select id="orderId" resultMap="orderMap">
+        select
+-- 用include 标签来用上面 (orderColumnus) 设置好的字节    property 属性用来命名
+         <include refid="orderColumnus"><property name="alias" value="t2"/></include>
+         from sys_order t2 where t2.uid = #{id}
+    </select>
+
+<!-- 添加一条数据：
+        作用：
+            用来下订单 所需要的sql语句
+ -->
+    <insert id="addOrder">
+        insert into sys_order (cid, uid, getid, backid, oprice, status) VALUES (#{cid}, #{uid}, #{getid}, #{backid}, #{oprice}, #{status})
+    </insert>
+
+<!-- 通过id来删除该条信息
+        作用：
+            删除订单 -->
+    <delete id="delete">
+        delete from sys_order where id = #{id}
+    </delete>
+
+<!-- 联表查询; 通过用户id(uid) 来查出自己的订单具体数据;包括:(order 表中的订单号id, 价格price, 状态status;car表中车型name; city表中的城市名[取车地,还车地,用order表中的getid和backid获取]  )  :
+        left join 表名  on  连接的条件
+        作用:
+            获取自己的所有订单信息
+        order by 按照什么排序
+        include标签中的内容为limit( , ): 表示分页查询  -->
+    <select id="page" resultMap="selectOrder">
+
+       select t1.id oid, t1.oprice oprice ,t2.`name` cname , t3.`name` getcity, t4.`name` backcity, t1.`status` ostatus
+        from sys_order t1
+        left join sys_car  t2 on t1.cid = t2.id
+        left join sys_city t3 on t1.getid = t3.id
+        left join sys_city t4 on t1.backid=t4.id
+
+        where t1.uid = #{uid} order by uid desc
+        <include refid="paging.paging"></include>
+    </select>
+
+<!-- 和分页查询一起使用, 用与获取在分页查询条件下查到数据的总计 -->
+    <select id="pageCount" resultType="int">
+        select
+            count(t1.uid)
+        from sys_order t1
+            left join sys_car  t2 on t1.cid = t2.id
+            left join sys_city t3 on t1.getid = t3.id
+            left join sys_city t4 on t1.backid=t4.id
+        where t1.uid = #{uid}
+    </select>
+
+<!--**************************************************city***********************************************************-->
+
+<!--  city 表中的字节配置  -->
+    <sql id="cityColumns">
+         ${alias}.id, ${alias}.name, ${alias}.pid
+    </sql>
+
+<!-- 通过id 获取该条数据 -->
+    <select id="getId" resultMap="cityMap">
+        select
+        <include refid="cityColumns"><property name="alias" value="t3"/></include>
+        from sys_city t3 where t3.id = #{id}
+    </select>
+
+<!-- 通过pid 获取符合条件的所有数据
+        作用:
+            选取取车城市 以及还车城市 -->
+    <select id="getPid" resultMap="cityMap">
+        select
+        <include refid="cityColumns"><property name="alias" value="t3"/></include>
+        from sys_city t3 where t3.pid = #{pid}
+    </select>
+
+
+<!--**************************************************car***********************************************************-->
+
+    <sql id="carColumnus">
+         ${alias}.id, ${alias}.name, ${alias}.type , ${alias}.sitnum, ${alias}.cid,  ${alias}.price, ${alias}.number ,${alias}.picture
+    </sql>
+
+<!-- 通过cid 获取符合条件的所有的数据,并按价格的降序排列
+        作用:
+            通过城市的id 即car表中的cid 获取这个城市的所有车辆信息-->
+    <select id="selectByPrice" resultMap="carMap">
+        select
+        <include refid="carColumnus"><property name="alias" value="t4"/></include>
+        from sys_car t4 where t4.cid = #{cid} order by t4.price desc
+    </select>
+
+<!-- 通过cid 获取符合条件的所有的数据,并按数量的降序排列
+        作用:
+            通过城市的id 即car表中的cid 获取这个城市的所有车辆信息-->
+    <select id="selectByNum" resultMap="carMap">
+        select
+        <include refid="carColumnus"><property name="alias" value="t4"/></include>
+
+        from sys_car t4 where t4.cid = #{cid} order by t4.number desc
+    </select>
+
+    <select id="getById" resultMap="carMap">
+        select
+        <include refid="carColumnus"><property name="alias" value="t4"/></include>
+        from sys_car t4 where t4.id = #{id}
+    </select>
+
+
+</mapper>

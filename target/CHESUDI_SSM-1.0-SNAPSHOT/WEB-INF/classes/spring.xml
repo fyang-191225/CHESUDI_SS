@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!--*************************************spring 配置*********************************************-->
+
+    <!-- 组件扫描器 扫描指定路径下的@Controller @Service @Repository 注解 -->
+    <context:component-scan base-package="com.ams.carsys"></context:component-scan>
+
+    <!-- 数据源 -->
+    <bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource ">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"></property>
+        <property name="jdbcUrl" value="jdbc:mysql://192.168.170.132:3306/carsys?useUnicode=true&amp;characterEncoding=utf8&amp;serverTimezone=GMT%2B8"></property>
+        <property name="username" value="root"></property>
+        <property name="password" value="123890"></property>
+
+        <property name="maxLifetime" value="180000"></property>
+        <property name="minimumIdle" value="10"></property>
+        <property name="maximumPoolSize" value="10"></property>
+
+    </bean>
+
+    <!-- 事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <!-- 启用注解驱动  即在方法面前加入注解来管理事务-->
+    <tx:annotation-driven></tx:annotation-driven>
+
+
+    <!--*************************************spring MVC配置*********************************************-->
+
+    <!-- 启用注解启动的mvc， 启动其他特殊组件 -->
+    <mvc:annotation-driven></mvc:annotation-driven>
+
+<!--    <mvc:view-controller path="">-->
+
+<!--    </mvc:view-controller>-->
+
+    <!-- 处理静态资源的请求 -->
+    <mvc:resources mapping="/resources/**" location="/resources/"></mvc:resources>
+
+    <!-- 视图解析器， 主要的作用是覆盖视图解析的前后缀 -->
+    <mvc:view-resolvers>
+        <mvc:jsp prefix="/WEB-INF/jsp/" suffix=".jsp"></mvc:jsp>
+    </mvc:view-resolvers>
+
+    <!--  拦截器的配置  -->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!-- 所有的请求都进入拦截器 -->
+            <mvc:mapping path="/**"/>
+
+            <mvc:exclude-mapping path="/"/>
+            <mvc:exclude-mapping path="/loginJsp"/>
+            <mvc:exclude-mapping path="/user/loginDo"/>
+            <mvc:exclude-mapping path="/indexJsp"/>
+            <mvc:exclude-mapping path="/registerJsp"/>
+            <mvc:exclude-mapping path="/shortrentJsp"/>
+            <mvc:exclude-mapping path="/resources/**"/>
+            <mvc:exclude-mapping path="/*/loginsuccessJsp"/>
+            <mvc:exclude-mapping path="/*/selectPid"/>
+            <mvc:exclude-mapping path="/*/shortsortJsp"/>
+            <mvc:exclude-mapping path="/*/add"/>
+            <mvc:exclude-mapping path="/*/mail"/>
+            <mvc:exclude-mapping path="/*/tel"/>
+            <!-- 拦截器配置类所在类的路径 -->
+            <bean class="com.ams.carsys.fiter.bo.Interceptor"></bean>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <!--*************************************spring 配置*********************************************-->
+
+    <!-- 配置sqlSessionFactory -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"></property>
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+    </bean>
+
+    <!-- 扫描指定包下的Dao层接口， 生产dao接口的代理实现 -->
+    <bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.ams.carsys.**.dao"></property>
+    </bean>
+</beans>
